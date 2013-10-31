@@ -16,22 +16,26 @@ URLS = {
 }
 
 
-def page_to_url(kind, n, page=0):
-    return URLS[kind] % (n, page * 30)
+def page_to_url(kind, n, st=0):
+    return URLS[kind] % (n, st)
 
 
 def url_to_page(url):
     url = urlparse.urlparse(url)
     qs = urlparse.parse_qs(url.query)
     st = int(qs.get("st", [0])[-1])
-    if "showtopic" in qs:
+    if not url.path.endswith("/index.php"):
+        return None, None, None
+    elif "showtopic" in qs:
         return "topic", int(qs["showtopic"][-1]), st
     else:
         return "forum", int(qs.get("showforum", [0])[-1]), st
 
 
 def fetch(url):
-    path = "%s/%d/%d.html" % url_to_page(url)
+    page = url_to_page(url)
+    path = "%s/%d/%d.html" % page
+    print "fetching %s %s (%s)" % page
     try:
         st = os.stat(path)
     except OSError:
@@ -48,6 +52,7 @@ def fetch(url):
         pass
     with open(path, "w") as f:
         f.write(data)
+    time.sleep(len(data) / 56320.0)  # Be nice to their servers.
     return data
 
 
@@ -65,7 +70,7 @@ def is_last_page(url, doc):
 
 def all_forum_pages(forum):
     for i in itertools.count():
-        url = page_to_url("forum", forum, i)
+        url = page_to_url("forum", forum, i * 30)
         doc = bs4.BeautifulSoup(fetch(url))
         yield i, url, doc
         if is_last_page(url, doc):
@@ -73,10 +78,9 @@ def all_forum_pages(forum):
 
 
 def main():
+    topics = collections.defaultdict(int)
     for i, url, doc in all_forum_pages(17):
-        print "Page %d:" % i
         links = doc.find_all("a")
-        topics = collections.defaultdict(int)
         for link in links:
             href = link.get("href")
             if not href:
@@ -84,8 +88,9 @@ def main():
             kind, n, st = url_to_page(href)
             if kind == "topic":
                 topics[n] = max(topics[n], st)
-        for topic, st in sorted(topics.iteritems()):
-            print "    %d (%d pages)" % (topic, 1 + (st / 25))
+    for topic, st in sorted(topics.iteritems()):
+        for i in xrange(0, st + 25, 25):
+            fetch(page_to_url("topic", topic, i))
 
 
 if __name__ == "__main__":
