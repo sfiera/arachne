@@ -9,7 +9,7 @@ import time
 import urllib2
 import urlparse
 
-CACHE_SECONDS = datetime.timedelta(days=7).total_seconds()
+CACHE_SECONDS = datetime.timedelta(days=14).total_seconds()
 URLS = {
     "forum": u"http://www.ambrosiasw.com/forums/index.php?showforum=%d&st=%d&prune_day=100",
     "topic": u"http://www.ambrosiasw.com/forums/index.php?showtopic=%d&st=%d",
