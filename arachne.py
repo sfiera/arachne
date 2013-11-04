@@ -33,6 +33,7 @@ def url_to_page(url):
 
 
 def fetch(url):
+    start = time.time()
     page = url_to_page(url)
     path = "%s/%d/%d.html" % page
     print "fetching %s %s (%s)" % page
@@ -52,7 +53,13 @@ def fetch(url):
         pass
     with open(path, "w") as f:
         f.write(data)
-    time.sleep(len(data) / 56320.0)  # Be nice to their servers.
+
+    # Be nice to their servers--rate limit to 56k
+    duration = time.time() - start
+    rate_lim = len(data) / 56320.0
+    if duration < rate_lim:
+        time.sleep(rate_lim - duration)
+
     return data
 
 
