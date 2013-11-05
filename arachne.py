@@ -36,7 +36,7 @@ def url_to_page(url):
 def fetch(url):
     start = time.time()
     page = url_to_page(url)
-    path = "%s/%d/%d.html" % page
+    path = "cache/%s/%d/%d.html" % page
     sys.stdout.write("fetching %s %s (%s)..." % page)
     try:
         st = os.stat(path)
