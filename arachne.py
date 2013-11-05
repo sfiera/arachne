@@ -90,19 +90,20 @@ def all_forum_pages(forum):
 
 
 def main():
-    topics = collections.defaultdict(int)
-    for i, url, doc in all_forum_pages(17):
-        links = doc.find_all("a")
-        for link in links:
-            href = link.get("href")
-            if not href:
-                continue
-            kind, n, st = url_to_page(href)
-            if kind == "topic":
-                topics[n] = max(topics[n], st)
-    for topic, st in sorted(topics.iteritems()):
-        for i in xrange(0, st + 25, 25):
-            fetch(page_to_url("topic", topic, i))
+    for forum in [17, 64]:
+        topics = collections.defaultdict(int)
+        for i, url, doc in all_forum_pages(forum):
+            links = doc.find_all("a")
+            for link in links:
+                href = link.get("href")
+                if not href:
+                    continue
+                kind, n, st = url_to_page(href)
+                if kind == "topic":
+                    topics[n] = max(topics[n], st)
+        for topic, st in sorted(topics.iteritems()):
+            for i in xrange(0, st + 25, 25):
+                fetch(page_to_url("topic", topic, i))
 
 
 if __name__ == "__main__":
