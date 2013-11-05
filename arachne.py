@@ -5,6 +5,7 @@ import collections
 import datetime
 import itertools
 import os
+import sys
 import time
 import urllib2
 import urlparse
@@ -36,7 +37,7 @@ def fetch(url):
     start = time.time()
     page = url_to_page(url)
     path = "%s/%d/%d.html" % page
-    print "fetching %s %s (%s)" % page
+    sys.stdout.write("fetching %s %s (%s)..." % page)
     try:
         st = os.stat(path)
     except OSError:
@@ -44,8 +45,11 @@ def fetch(url):
     else:
         if st.st_mtime > (time.time() - CACHE_SECONDS):
             with open(path) as f:
+                sys.stdout.write(" cached\n")
                 return f.read()
 
+    sys.stdout.write(" downloading...")
+    sys.stdout.flush()
     data = urllib2.urlopen(url).read()
     try:
         os.makedirs(os.path.dirname(path))
@@ -60,6 +64,7 @@ def fetch(url):
     if duration < rate_lim:
         time.sleep(rate_lim - duration)
 
+    sys.stdout.write(" done\n")
     return data
 
 
