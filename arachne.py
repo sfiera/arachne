@@ -80,6 +80,50 @@ def is_last_page(url, doc):
     return True
 
 
+def fix_links(doc):
+    links = doc.find_all("a")
+    for link in links:
+        href = link.get("href")
+        if not href:
+            continue
+        kind, n, st = url_to_page(href)
+        if kind is not None:
+            link["href"] = "../../%s/%d/%d.html" % (kind, n, st)
+
+
+def save(url, doc):
+    path = "out/%s/%d/%d.html" % url_to_page(url)
+    try:
+        os.makedirs(os.path.dirname(path))
+    except OSError:
+        pass
+    with open(path, "w") as f:
+        f.write(str(doc))
+
+
+def all_topic_urls(doc):
+    links = doc.find_all("a")
+    for link in links:
+        href = link.get("href")
+        if not href:
+            continue
+        kind, n, st = url_to_page(href)
+        if kind == "topic":
+            yield n, st
+
+
+def should_fix_links(url):
+    page = url_to_page(url)
+    old = "cache/%s/%d/%d.html" % page
+    new = "out/%s/%d/%d.html" % page
+    try:
+        st_old = os.stat(old)
+        st_new = os.stat(new)
+    except OSError:
+        return True
+    return st_old.st_mtime > st_new.st_mtime
+
+
 def all_forum_pages(forum):
     for i in itertools.count():
         url = page_to_url("forum", forum, i * 30)
@@ -95,43 +139,20 @@ def main():
         topics = collections.defaultdict(int)
 
         for i, url, doc in all_forum_pages(forum):
-            links = doc.find_all("a")
-            for link in links:
-                href = link.get("href")
-                if not href:
-                    continue
-                kind, n, st = url_to_page(href)
-                if kind == "topic":
-                    topics[n] = max(topics[n], st)
-                if kind is not None:
-                    link["href"] = "../../%s/%d/%d.html" % (kind, n, st)
-            path = "out/%s/%d/%d.html" % url_to_page(url)
-            try:
-                os.makedirs(os.path.dirname(path))
-            except OSError:
-                pass
-            with open(path, "w") as f:
-                f.write(str(doc))
+            for n, st in all_topic_urls(doc):
+                topics[n] = max(topics[n], st)
+            if should_fix_links(url):
+                fix_links(doc)
+                save(url, doc)
 
         for topic, st in sorted(topics.iteritems()):
             for i in xrange(0, st + 25, 25):
                 url = page_to_url("topic", topic, i)
-                doc = bs4.BeautifulSoup(fetch(url))
-                links = doc.find_all("a")
-                for link in links:
-                    href = link.get("href")
-                    if not href:
-                        continue
-                    kind, n, st = url_to_page(href)
-                    if kind is not None:
-                        link["href"] = "../../%s/%d/%d.html" % (kind, n, st)
-                path = "out/%s/%d/%d.html" % url_to_page(url)
-                try:
-                    os.makedirs(os.path.dirname(path))
-                except OSError:
-                    pass
-                with open(path, "w") as f:
-                    f.write(str(doc))
+                data = fetch(url)
+                if should_fix_links(url):
+                    doc = bs4.BeautifulSoup(data)
+                    fix_links(doc)
+                    save(url, doc)
 
 
 if __name__ == "__main__":
