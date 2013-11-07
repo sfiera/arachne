@@ -135,7 +135,7 @@ def all_forum_pages(forum):
 
 
 def main():
-    for forum in [17, 64]:
+    for forum in [17, 64, 90]:
         topics = collections.defaultdict(int)
 
         for i, url, doc in all_forum_pages(forum):
