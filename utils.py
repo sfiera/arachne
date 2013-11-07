@@ -22,12 +22,19 @@ def url_to_page(url):
     url = urlparse.urlparse(url)
     qs = urlparse.parse_qs(url.query)
     st = int(qs.get("st", [0])[-1])
-    if not url.path.endswith("/index.php"):
-        return None, None, None
-    elif "showtopic" in qs:
-        return "topic", int(qs["showtopic"][-1]), st
-    else:
-        return "forum", int(qs.get("showforum", [0])[-1]), st
+    page = qs.get("page", [0])[-1]
+
+    if url.path.endswith("/index.php"):
+        if "showtopic" in qs:
+            return "topic", int(qs["showtopic"][-1]), (st / 25)
+        elif "showuser" in qs:
+            return "user", int(qs["showuser"][-1]), 0
+        else:
+            return "forum", int(qs.get("showforum", [0])[-1]), (st / 30)
+    elif url.path.endswith("/addons"):
+        game = url.split("/")[-2]
+        return "addons", game, page - 1
+    return None, None, None
 
 
 def fetch(url):
