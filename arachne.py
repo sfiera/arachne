@@ -14,7 +14,9 @@ def is_last_page(url, doc):
         if not href:
             continue
         that_kind, that_n, that_page = utils.url_to_page(href)
-        if ((this_kind, this_n) == (that_kind, that_n)) and (that_page > this_page):
+        if (this_kind, this_n) != (that_kind, that_n):
+            continue
+        if that_page > this_page:
             return False
     return True
 
@@ -25,9 +27,9 @@ def fix_links(doc):
         href = link.get("href")
         if not href:
             continue
-        kind, n, st = utils.url_to_page(href)
+        kind, n, page = utils.url_to_page(href)
         if kind is not None:
-            link["href"] = "../../%s/%d/%d.html" % (kind, n, st)
+            link["href"] = "../../%s/%d/%d.html" % (kind, n, page)
 
 
 def save(url, doc):
@@ -46,14 +48,14 @@ def all_topic_urls(doc):
         href = link.get("href")
         if not href:
             continue
-        kind, n, st = utils.url_to_page(href)
+        kind, n, page = utils.url_to_page(href)
         if kind == "topic":
-            yield n, st
+            yield n, page
 
 
 def should_fix_links(url):
     page = utils.url_to_page(url)
-    old = "cache/%s/%d/%d.html" % page
+    old = utils.cache_url(page)
     new = "out/%s/%d/%d.html" % page
     try:
         st_old = os.stat(old)
@@ -64,8 +66,8 @@ def should_fix_links(url):
 
 
 def all_forum_pages(forum):
-    for i in itertools.count():
-        url = utils.page_to_url("forum", forum, i * 30)
+    for i in itertools.count(1):
+        url = utils.page_to_url("forum", forum, i)
         doc = bs4.BeautifulSoup(utils.fetch(url))
         last = is_last_page(url, doc)
         yield i, url, doc
@@ -75,17 +77,17 @@ def all_forum_pages(forum):
 
 def main():
     for forum in [17, 64, 90]:
-        topics = collections.defaultdict(int)
+        topics = collections.defaultdict(lambda: 1)
 
         for i, url, doc in all_forum_pages(forum):
-            for n, st in all_topic_urls(doc):
-                topics[n] = max(topics[n], st)
+            for n, page in all_topic_urls(doc):
+                topics[n] = max(topics[n], page)
             if should_fix_links(url):
                 fix_links(doc)
                 save(url, doc)
 
-        for topic, st in sorted(topics.iteritems()):
-            for i in xrange(0, st + 25, 25):
+        for topic, page in sorted(topics.iteritems()):
+            for i in xrange(1, page + 1):
                 url = utils.page_to_url("topic", topic, i)
                 data = utils.fetch(url)
                 if should_fix_links(url):

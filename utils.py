@@ -14,7 +14,13 @@ URLS = {
 }
 
 
-def page_to_url(kind, n, st=0):
+def page_to_url(kind, n, page=1):
+    if kind == "topic":
+        st = (page - 1) * 25
+    elif kind == "forum":
+        st = (page - 1) * 30
+    else:
+        st = page
     return URLS[kind] % (n, st)
 
 
@@ -22,25 +28,29 @@ def url_to_page(url):
     url = urlparse.urlparse(url)
     qs = urlparse.parse_qs(url.query)
     st = int(qs.get("st", [0])[-1])
-    page = qs.get("page", [0])[-1]
+    page = int(qs.get("page", [0])[-1])
 
     if url.path.endswith("/index.php"):
         if "showtopic" in qs:
-            return "topic", int(qs["showtopic"][-1]), (st / 25)
+            return "topic", int(qs["showtopic"][-1]), 1 + (st / 25)
         elif "showuser" in qs:
-            return "user", int(qs["showuser"][-1]), 0
+            return "user", int(qs["showuser"][-1]), 1
         else:
-            return "forum", int(qs.get("showforum", [0])[-1]), (st / 30)
+            return "forum", int(qs.get("showforum", [0])[-1]), 1 + (st / 30)
     elif url.path.endswith("/addons"):
         game = url.split("/")[-2]
-        return "addons", game, page - 1
+        return "addons", game, page
     return None, None, None
+
+
+def cache_url(page):
+    return "cache/%s/%s/%s.html" % page
 
 
 def fetch(url):
     start = time.time()
     page = url_to_page(url)
-    path = "cache/%s/%d/%d.html" % page
+    path = cache_url(page)
     sys.stdout.write("fetching %s %s (%s)..." % page)
     try:
         st = os.stat(path)
