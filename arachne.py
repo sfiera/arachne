@@ -73,7 +73,7 @@ def should_fix_links(url):
 def all_forum_pages(forum):
     for i in itertools.count(1):
         url = utils.page_to_url("forum", forum, i)
-        doc = bs4.BeautifulSoup(utils.fetch(url))
+        doc = bs4.BeautifulSoup(utils.fetch(url), "lxml")
         last = utils.is_last_page(url, doc)
         yield i, url, doc
         if last:
@@ -83,7 +83,7 @@ def all_forum_pages(forum):
 def all_addon_pages(game):
     for i in itertools.count(1):
         url = utils.page_to_url("addons", game, i)
-        doc = bs4.BeautifulSoup(utils.fetch(url))
+        doc = bs4.BeautifulSoup(utils.fetch(url), "lxml")
         last = utils.is_last_page(url, doc)
         yield i, url, doc
         if last:
@@ -110,7 +110,7 @@ def main():
                     url = utils.page_to_url("topic", topic, i)
                     data = utils.fetch(url)
                     if should_fix_links(url):
-                        doc = bs4.BeautifulSoup(data)
+                        doc = bs4.BeautifulSoup(data, "lxml")
                         fix_links(url, doc)
                         save(url, doc)
     elif kind == "addons":
